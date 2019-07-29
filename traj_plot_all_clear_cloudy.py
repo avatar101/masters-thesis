@@ -14,6 +14,17 @@ def traj_plot_all_clear_cloudy(*months, path, state, levels = ['780', '1000', '1
     path: path to data file to be plotted
     state: clear or cloudy
     """
+
+    
+    # specifying the levels or ask user to give levels as a list
+    #levels = ['780', '1000', '1400', '1850', '2850', '3950', '5220', '6730', '8600']
+    fig = plt.figure(figsize=(12,10))
+        # plt.figure(figsize=(10,8))
+
+    m = Basemap(projection='ortho', lat_0=80, lon_0=270, resolution='l')
+    m.fillcontinents(color='0.75')
+    m.drawparallels(np.arange(-80.,81.,20.), color='grey')
+    m.drawmeridians(np.arange(-180.,181.,20.))
     
     mons = [mo for mo in months]
     
@@ -22,27 +33,21 @@ def traj_plot_all_clear_cloudy(*months, path, state, levels = ['780', '1000', '1
     # checking for clear or cloudy
     if (state == 'cloudy'):
         for mo in mons:
-            dates_ = open('/home/ollie/muali/python_notebooks/Avg_dates/3havg_cloudy_'+ mo,'r').read().split('\n')
+            # makes a list of list
+            # each month dates are stored as a separate list with dates as strings
+            dates_.append(open('/home/ollie/muali/python_notebooks/Avg_dates/3havg_cloudy_'+ mo,'r').read().split('\n'))
     else:
         for mo in mons:
             dates_ = open('/home/ollie/muali/python_notebooks/Avg_dates/3havg_clear_'+ mo,'r').read().split('\n')
         
-    # specifying the levels or ask user to give levels as a list
-    #levels = ['780', '1000', '1400', '1850', '2850', '3950', '5220', '6730', '8600']
-    fig = plt.figure(figsize=(12,10))
-        # plt.figure(figsize=(10,8))
-
-    m = Basemap(projection='ortho', lat_0=80, lon_0=270, resolution='i')
-    m.fillcontinents(color='0.75')
-    m.drawparallels(np.arange(-80.,81.,20.), color='grey')
-    m.drawmeridians(np.arange(-180.,181.,20.))
-        
+       
     for lvl in levels:
         #to loop over all levels
         # inner loop for plotting all the trajectories on one map
 
         # read the trajectories to be plotted
         for line_ in dates_:
+            # element by element reading the dates
             df = pd.read_csv(path+'tdump_'+lvl+'_'+line_, skiprows=7, header=None, delim_whitespace=True)
             
             lat = np.array(df.iloc[:, 9].copy())

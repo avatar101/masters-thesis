@@ -8,23 +8,24 @@ from netCDF4 import date2index
 from datetime import datetime
 
 
-def traj_plot(*dates, path, path_save=None, plot_name='traj_plot', sea_ice='Yes', save_fig=None, size=(12,10), pixel=None, rows=7, levels = ['400', '780', '1000', '1400', '1850', '2850', '3950', '5220', '6730', '8600']):
+def traj_plot(*dates, path, path_save=None, plot_name='traj_plot', sea_ice='Yes', stations=None, save_fig=None, size=(12,10), pixel=None, title=None ,rows=7, levels = ['400', '780', '1000', '1400', '1850', '2850', '3950', '5220', '6730', '8600']):
     
     """Function to plot trajectories for a variable dates for user specified levels with an option for sea_ice
     brackground on a single plot.
     
     Input arguments: 
-    date: as a datetime.datetime object Eg, datetime(1997,12,1,23)
-    path: path of data file to be plotted
-    path_save: Default none, path where the file is desired to be saved
+    date: as a datetime.datetime object Eg, datetime(1997,12,1,23). Also works with pandas daterange
+    path: (str) path of data file to be plotted
+    path_save: (str) path where the file is desired to be saved
     sea_ice: 'Yes' or 'Y' to plot sea_ice
-    save_fig: Default doesn't save
-    size: controls figure size. To be given as tuple
-    pixel: Alter dpi for resolution
-    rows: No of rows to skip while reading the trajectory data. Default 7 but depends on number of Meteo files used while traj 
+    save_fig: ('Y' or 'None') Default doesn't save, provide path_save for saving
+    size: (tuple) figure size 
+    pixel: (int) Alter dpi for resolution
+    title: ('Y' or 'None') Heading of the plot, default is None
+    rows: (int) No of rows to skip while reading the trajectory data. Default 7 but depends on number of Meteo files used while traj 
     calculation
    
-    levels: to plot as a list of strings
+    levels: (list) levels to plot as a list of strings
     Eg, levels = ['400', '780', '1000', '1400', '1850', '2850', '3950', '5220', '6730', '8600'] """
     
     # path
@@ -37,15 +38,15 @@ def traj_plot(*dates, path, path_save=None, plot_name='traj_plot', sea_ice='Yes'
         # plt.figure(figsize=(10,8))
         
     m = Basemap(projection='ortho', lat_0=80, lon_0=270, resolution='l')
+    
+    #m.drawcoastlines(color='0.75')
     m.fillcontinents(color='0.75')
-    m.drawparallels(np.arange(-80.,81.,20.), color='grey')
-    m.drawmeridians(np.arange(-180.,181.,20.))
+    m.drawparallels(np.arange(-80.,81.,10.), color='grey') # lat andd lons at 20 degrees
+    m.drawmeridians(np.arange(-180.,181.,20.)) # longittudes
     
     if (sea_ice == 'Yes' or sea_ice == 'Y'):    
         # Reading Sea Ice data
-        filename_ = 'h://IUP/Student_job_AWI/HySplit/data/G10010_SeaIce/G10010_SIBT1850_v1.1.nc'
-        # for ollie use this path
-        #filename_ = '/home/ollie/muali/Data/G10010_SeaIce/G10010_SIBT1850_v1.1.nc'
+        filename_ = '/home/ollie/muali/Data/G10010_SeaIce/G10010_SIBT1850_v1.1.nc'
         ds = Dataset(filename_)
         
         # to get the time index out of the netcdf variable
@@ -73,9 +74,10 @@ def traj_plot(*dates, path, path_save=None, plot_name='traj_plot', sea_ice='Yes'
         ds.close()
         
         # plotting Sea Ice
-        m.pcolormesh(lon_ice, lat_ice, sea_ice_dec, latlon=True, cmap='Blues')
+        m.pcolormesh(lon_ice, lat_ice, sea_ice_dec, latlon=True, cmap='plasma')
         plt.clim(0, 100) # Set the color limits of the current image
-        plt.colorbar(label='Sea Ice Concentration')
+        plt.colorbar(label='Sea Ice Concentration', shrink=0.65)
+    
     
     
     all_dates = "" # to print dates in the title
@@ -97,18 +99,45 @@ def traj_plot(*dates, path, path_save=None, plot_name='traj_plot', sea_ice='Yes'
         
         #source point
             xpt, ypt = m(lon[-1], lat[-1])
-            plt.plot(xpt, ypt, marker = '*', markerfacecolor='red', markersize=4)
+            plt.plot(xpt, ypt, marker = '*', markerfacecolor='red', linewidth=0, markersize=5)
             # Text
             plt.text(xpt,ypt,lvl, fontsize=8, color='red')
-           # plt.text(xpt,ypt,'Source (%5.1fW,%3.1fN)' % (lonpt,latpt), color='yellow', fontsize=15)
+            # plt.text(xpt,ypt,'Source (%5.1fW,%3.1fN)' % (lonpt,latpt), color='yellow', fontsize=15)
+        
+    #SHEBA point #ffed00
+        x_s, y_s = m(lon[0], lat[0])
+        plt.plot(x_s, y_s, marker = '*', markerfacecolor='k', linewidth=0, markersize=12)
+    
+    #plt.text(x_s,y_s,'SHEBA', color='#ffed00', fontsize=15)
+    
+        if stations is not None:
+            # plotting stations
+            # Reading IGRA list
+            df_IGRA = pd.read_excel('/home/ollie/muali/python_notebook_ollie/IGR_Above_25Lat.xlsx')
+            df_IGRA2 = df_IGRA.loc[df_IGRA['Lat'] > 55.]
+            station_lat = df_IGRA2['Lat'].values
+            station_lon = df_IGRA2['Lon'].values
+            station_x, station_y = m(station_lon, station_lat)
+            m.scatter(station_x, station_y, marker = '*', c='k', s=45, linewidth=0.2, zorder=10)
+            ##FFED00 yellow #00ff19: greenish color'
             
-    for date in dates:
-        all_dates +='{}'.format(date)+" "
-            
-    plt.title(all_dates)
-    if save_fig != None:
+        if title is not None:
+            plt.title(d_)
+        if save_fig != None:
         # saving fig
-        plt.savefig(path2 + plot_name + '.png')
-        plt.close(fig)
-    else:
-        plt.show(fig)
+            plt.savefig(path_save + plot_name + d_+ '.png', dpi=pixel)
+            plt.close(fig)
+        else:
+            plt.show(fig)
+    
+#    for date in dates:
+#        all_dates +='{}'.format(date)+" "
+        
+#    if title is not None:
+#        plt.title(all_dates)
+#    if save_fig != None:
+        # saving fig
+#        plt.savefig(path_save + plot_name +'{:%m_%d_%H}'.format(all_dates) + '.png', dpi=pixel)
+#        plt.close(fig)
+#    else:
+#        plt.show(fig)
